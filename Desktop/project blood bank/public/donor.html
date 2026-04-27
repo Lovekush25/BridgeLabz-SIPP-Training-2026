@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Donor Panel — BloodLink</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+<link rel="stylesheet" href="styles.css"/>
+</head>
+<body>
+<div class="app-layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo">BloodLink</div>
+      <span class="sidebar-role" id="sidebar-role-badge">Student</span>
+    </div>
+    <div class="sidebar-user">
+      <div class="user-avatar" id="user-avatar">U</div>
+      <div><div class="user-name" id="user-name">User</div><div class="user-email" id="user-email"></div></div>
+    </div>
+    <nav class="sidebar-nav">
+      <button class="nav-item active" data-panel="d-register" onclick="showPanel('d-register')"><i class="fas fa-user-plus"></i><span>Register / Update</span></button>
+      <button class="nav-item"        data-panel="d-history"  onclick="showPanel('d-history')"><i class="fas fa-clock-rotate-left"></i><span>Donation History</span></button>
+      <button class="nav-item"        data-panel="d-search"   onclick="showPanel('d-search')"><i class="fas fa-magnifying-glass"></i><span>Search Donors</span></button>
+      <div class="nav-section">Navigation</div>
+      <a class="nav-item" href="dashboard_user.html"><i class="fas fa-gauge"></i><span>Dashboard</span></a>
+      <a class="nav-item" href="receiver.html"><i class="fas fa-droplet"></i><span>Receiver Panel</span></a>
+      <a class="nav-item" href="change_password.html"><i class="fas fa-key"></i><span>Change Password</span></a>
+    </nav>
+    <div class="sidebar-footer">
+      <button class="btn-logout" onclick="doLogout()"><i class="fas fa-right-from-bracket"></i> <span>Sign Out</span></button>
+    </div>
+  </aside>
+
+  <div class="main-content">
+    <div class="topbar">
+      <div class="page-title" id="topbar-title">Donor Registration</div>
+      <div class="topbar-right">
+        <button class="dark-toggle"><i class="fas fa-sun"></i></button>
+        <span style="font-size:.85rem;color:var(--muted);" id="topbar-date"></span>
+      </div>
+    </div>
+
+    <div class="dashboard-body">
+
+      <!-- ── REGISTER / UPDATE ── -->
+      <div class="panel active" id="d-register">
+        <div class="card" style="max-width:660px;">
+          <div class="card-header">
+            <h3 id="donor-form-title"><i class="fas fa-hand-holding-medical" style="color:var(--success);"></i> Donor Registration</h3>
+            <span id="donor-status-badge"></span>
+          </div>
+          <div id="donor-reg-alert"  class="alert alert-error"></div>
+          <div id="donor-reg-ok"     class="alert alert-success"></div>
+
+          <div class="form-row">
+            <div class="form-group"><label>Full Name *</label><input id="dn-name" placeholder="Your full name"/></div>
+            <div class="form-group"><label>Age *</label><input type="number" id="dn-age" min="18" max="65" placeholder="e.g. 21"/></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label>Blood Group *</label>
+              <select id="dn-blood">
+                <option>A+</option><option>A-</option><option>B+</option><option>B-</option>
+                <option>AB+</option><option>AB-</option><option>O+</option><option>O-</option>
+              </select>
+            </div>
+            <div class="form-group"><label>Contact Number</label><input id="dn-contact" placeholder="+91 98765 43210"/></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label>Roll Number</label><input id="dn-roll" placeholder="University roll number"/></div>
+            <div class="form-group"><label>Last Donation Date</label><input type="date" id="dn-lastdate"/></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label>City</label><input id="dn-city" placeholder="Your city"/></div>
+            <div class="form-group"><label>Address</label><input id="dn-address" placeholder="Your address (optional)"/></div>
+          </div>
+          <div class="form-group"><label>Medical Notes (optional)</label>
+            <textarea id="dn-notes" rows="2" placeholder="Any relevant medical information..."></textarea>
+          </div>
+
+          <button class="btn-submit" id="donor-submit-btn" onclick="submitDonor()">
+            <i class="fas fa-user-plus"></i> <span id="donor-btn-text">Register as Donor</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- ── DONATION HISTORY ── -->
+      <div class="panel" id="d-history">
+        <div class="card">
+          <div class="card-header"><h3>My Donation History</h3><button class="btn btn-ghost btn-sm" onclick="loadHistory()"><i class="fas fa-refresh"></i></button></div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead><tr><th>Blood Group</th><th>Units</th><th>Date</th><th>Location</th><th>Status</th><th>Notes</th></tr></thead>
+              <tbody id="history-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── SEARCH DONORS ── -->
+      <div class="panel" id="d-search">
+        <div class="card">
+          <div class="card-header">
+            <h3>Find Donors</h3>
+            <div class="flex gap-2">
+              <select id="search-bg" style="background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:.4rem .8rem;color:var(--text);">
+                <option value="">All Blood Groups</option>
+                <option>A+</option><option>A-</option><option>B+</option><option>B-</option>
+                <option>AB+</option><option>AB-</option><option>O+</option><option>O-</option>
+              </select>
+              <button class="btn btn-primary btn-sm" onclick="searchDonors()"><i class="fas fa-search"></i> Search</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead><tr><th>Name</th><th>Blood Group</th><th>Roll Number</th><th>City</th><th>Last Donated</th><th>Eligible</th></tr></thead>
+              <tbody id="search-tbody"><tr><td colspan="6" style="text-align:center;color:var(--muted);">Select a blood group and click Search.</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+<script src="script.js"></script>
+<script>
+requireAuth(['student','faculty']);
+const user = getUser();
+initSidebar(user.role);
+initDarkMode();
+
+let isRegistered = false;
+
+// Load donor profile on start
+async function loadDonorProfile() {
+  try {
+    const d = await apiFetch('/donor/profile', {});
+    if (d && d.id) {
+      isRegistered = true;
+      document.getElementById('donor-form-title').innerHTML = '<i class="fas fa-user-edit" style="color:var(--warn);"></i> Update Donor Profile';
+      document.getElementById('donor-btn-text').textContent = 'Update Donor Profile';
+      document.getElementById('donor-submit-btn').innerHTML = '<i class="fas fa-save"></i> Update Donor Profile';
+      document.getElementById('donor-status-badge').innerHTML = d.is_eligible
+        ? '<span class="badge badge-green"><i class="fas fa-check"></i> Eligible to Donate</span>'
+        : '<span class="badge badge-red"><i class="fas fa-ban"></i> Not Eligible</span>';
+      // Populate
+      setVal('dn-name', d.full_name); setVal('dn-age', d.age || '');
+      setVal('dn-blood', d.blood_group); setVal('dn-contact', d.contact || '');
+      setVal('dn-roll', d.roll_number || '');
+      setVal('dn-lastdate', d.last_donation_date ? d.last_donation_date.split('T')[0] : '');
+      setVal('dn-city', d.city || ''); setVal('dn-address', d.address || '');
+      setVal('dn-notes', d.medical_notes || '');
+    } else {
+      // Pre-fill from user profile
+      setVal('dn-name', user.name || '');
+      setVal('dn-roll', user.roll_number || '');
+    }
+  } catch(e) { /* not registered yet */ setVal('dn-name', user.name || ''); setVal('dn-roll', user.roll_number || ''); }
+}
+loadDonorProfile();
+loadHistory();
+
+async function submitDonor() {
+  hideAlert('donor-reg-alert'); hideAlert('donor-reg-ok');
+  const body = {
+    full_name: val('dn-name'), age: val('dn-age'), blood_group: val('dn-blood'),
+    contact: val('dn-contact'), roll_number: val('dn-roll'),
+    last_donation_date: val('dn-lastdate') || null,
+    city: val('dn-city'), address: val('dn-address'), medical_notes: val('dn-notes')
+  };
+  if (!body.full_name) { showAlert('donor-reg-alert', 'Full name is required.'); return; }
+  if (!body.age || body.age < 18) { showAlert('donor-reg-alert', 'Age must be 18 or above.'); return; }
+
+  const btn = document.getElementById('donor-submit-btn');
+  btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+
+  try {
+    const endpoint = isRegistered ? '/donor/profile' : '/donor/register';
+    const method   = isRegistered ? 'PUT' : 'POST';
+    const res = await apiFetch(endpoint, { method, body });
+    showAlert('donor-reg-ok', res.message || 'Saved!', 'success');
+    toast(res.message, 'success');
+    isRegistered = true;
+    btn.innerHTML = '<i class="fas fa-save"></i> Update Donor Profile';
+  } catch(e) {
+    showAlert('donor-reg-alert', e.message);
+    btn.innerHTML = isRegistered ? '<i class="fas fa-save"></i> Update Donor Profile' : '<i class="fas fa-user-plus"></i> Register as Donor';
+  } finally { btn.disabled = false; }
+}
+
+async function loadHistory() {
+  try {
+    const rows = await apiFetch('/donor/history', {});
+    const tbody = document.getElementById('history-tbody');
+    if (!rows.length) {
+      tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state"><i class="fas fa-history"></i><p>No donation records yet.</p></div></td></tr>';
+      return;
+    }
+    tbody.innerHTML = rows.map(r => `<tr>
+      <td>${bloodBadge(r.blood_group)}</td>
+      <td>${r.units}</td>
+      <td>${fmtDate(r.donation_date)}</td>
+      <td>${esc(r.location || '—')}</td>
+      <td><span class="badge ${r.status==='completed'?'badge-green':'badge-gray'}">${esc(r.status)}</span></td>
+      <td>${esc(r.notes || '—')}</td>
+    </tr>`).join('');
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function searchDonors() {
+  const bg = document.getElementById('search-bg').value;
+  const tbody = document.getElementById('search-tbody');
+  tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);"><i class="fas fa-spinner fa-spin"></i> Searching...</td></tr>';
+  try {
+    const rows = await apiFetch('/donors/search' + (bg ? `?blood_group=${encodeURIComponent(bg)}` : ''), {});
+    if (!rows.length) { tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state"><i class="fas fa-user-slash"></i><p>No donors found for this blood group.</p></div></td></tr>'; return; }
+    tbody.innerHTML = rows.map(r => `<tr>
+      <td>${esc(r.full_name)}</td>
+      <td>${bloodBadge(r.blood_group)}</td>
+      <td>${esc(r.roll_number || '—')}</td>
+      <td>${esc(r.city || '—')}</td>
+      <td>${fmtDate(r.last_donation_date)}</td>
+      <td>${r.is_eligible ? '<span class="badge badge-green">Yes</span>' : '<span class="badge badge-red">No</span>'}</td>
+    </tr>`).join('');
+  } catch(e) { toast(e.message, 'error'); tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);">Search failed. Please try again.</td></tr>'; }
+}
+</script>
+</body>
+</html>

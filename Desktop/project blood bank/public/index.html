@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>BloodLink — Blood Bank Management System</title>
+<meta name="description" content="University Blood Bank Management System connecting donors, receivers and administrators."/>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+<link rel="stylesheet" href="styles.css"/>
+<link rel="stylesheet" href="pages.css"/>
+</head>
+<body>
+<canvas id="bg-canvas" style="position:fixed;inset:0;pointer-events:none;z-index:0;"></canvas>
+
+<div id="landing" style="position:relative;z-index:1;">
+  <!-- Nav -->
+  <nav class="landing-nav">
+    <div class="logo">
+      <div class="logo-icon"><i class="fas fa-tint"></i></div>
+      <span class="logo-text">BloodLink</span>
+    </div>
+    <div class="nav-links">
+      <a href="#inventory-section">Inventory</a>
+      <a href="#about-section">About</a>
+      <a href="login.html" class="btn-nav-login"><i class="fas fa-right-to-bracket"></i> Login</a>
+      <button class="dark-toggle" id="dt1" title="Toggle theme"><i class="fas fa-sun"></i></button>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="hero-text">
+      <div class="hero-tag"><i class="fas fa-heart-pulse"></i> University Blood Bank System</div>
+      <h1 class="hero-title">Every Drop<br>Counts. <span>Save Lives.</span></h1>
+      <p class="hero-sub">BloodLink connects students, faculty, and administrators in a seamless ecosystem — ensuring the right blood reaches the right person at the right time.</p>
+      <div class="hero-btns">
+        <a href="register.html" class="btn btn-primary"><i class="fas fa-user-plus"></i> Get Started</a>
+        <a href="login.html"    class="btn btn-outline"><i class="fas fa-right-to-bracket"></i> Login</a>
+      </div>
+    </div>
+    <div class="hero-visual">
+      <div class="blood-drop">
+        <div class="pulse-ring"></div>
+        <div class="pulse-ring"></div>
+        <div class="pulse-ring"></div>
+        <div class="drop-core">🩸</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Stats -->
+  <div class="stats-bar">
+    <div class="stat-item"><div class="stat-num" id="s-donors">0</div><div class="stat-lbl">Registered Donors</div></div>
+    <div class="stat-item"><div class="stat-num" id="s-units">0</div><div class="stat-lbl">Units Available</div></div>
+    <div class="stat-item"><div class="stat-num" id="s-requests">0</div><div class="stat-lbl">Blood Requests</div></div>
+    <div class="stat-item"><div class="stat-num" id="s-lives">0</div><div class="stat-lbl">Lives Saved</div></div>
+  </div>
+
+  <!-- Role Cards -->
+  <section class="roles-section" id="about-section">
+    <h2 class="section-title">Choose Your Role</h2>
+    <p class="section-sub">Three specialised portals, each tailored to your needs.</p>
+    <div class="role-cards">
+      <div class="role-card" onclick="window.location.href='login.html?role=admin'">
+        <div class="role-icon" style="background:rgba(200,16,46,.15);color:var(--blood-lt);"><i class="fas fa-shield-halved"></i></div>
+        <h3>Administrator</h3>
+        <p>Control the entire system — inventory, approvals, users, donors, analytics and more from one command center.</p>
+      </div>
+      <div class="role-card" onclick="window.location.href='login.html?role=student'">
+        <div class="role-icon" style="background:rgba(52,152,219,.15);color:#3498DB;"><i class="fas fa-graduation-cap"></i></div>
+        <h3>Student</h3>
+        <p>Register as a donor, request blood, track your history, and manage your profile with your roll number.</p>
+      </div>
+      <div class="role-card" onclick="window.location.href='login.html?role=faculty'">
+        <div class="role-icon" style="background:rgba(212,175,55,.15);color:#D4AF37;"><i class="fas fa-chalkboard-teacher"></i></div>
+        <h3>Faculty</h3>
+        <p>Donate blood, request blood units, and manage your donor/receiver profile as a university faculty member.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Public Inventory -->
+  <section class="inventory-strip" id="inventory-section">
+    <h2 class="section-title">Live Blood Inventory</h2>
+    <p class="section-sub">Current blood unit availability at our bank.</p>
+    <div class="inv-cards" id="public-inventory">
+      <p style="color:var(--muted);text-align:center;grid-column:1/-1;">Loading inventory...</p>
+    </div>
+  </section>
+
+  <div class="footer-strip" id="about-section-bottom">
+    🩸 BloodLink — University Blood Bank Management System &nbsp;|&nbsp; Built with ❤️ for Final Year Project
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast-container"></div>
+
+<script src="script.js"></script>
+<script>
+// Particle background
+(function(){
+  const c=document.getElementById('bg-canvas');
+  const ctx=c.getContext('2d');
+  let pts=[];
+  function resize(){c.width=window.innerWidth;c.height=window.innerHeight;}
+  resize();window.addEventListener('resize',resize);
+  setInterval(()=>pts.push({x:Math.random()*c.width,y:c.height+10,vy:-(0.4+Math.random()*1.2),size:1+Math.random()*2.5,life:0,maxLife:280+Math.random()*180}),500);
+  function draw(){
+    ctx.clearRect(0,0,c.width,c.height);
+    for(let i=pts.length-1;i>=0;i--){
+      const p=pts[i]; p.y+=p.vy; p.life++;
+      const prog=p.life/p.maxLife;
+      const op=prog<.1?prog*10:prog>.8?(1-prog)*5:1;
+      ctx.beginPath();ctx.arc(p.x,p.y,p.size,0,Math.PI*2);
+      ctx.fillStyle=`rgba(200,16,46,${op*0.35})`;ctx.fill();
+      if(p.life>=p.maxLife)pts.splice(i,1);
+    }
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+// Animate stats
+window.addEventListener('load', () => {
+  animCounter(document.getElementById('s-donors'),  853);
+  animCounter(document.getElementById('s-units'),   193);
+  animCounter(document.getElementById('s-requests'), 47);
+  animCounter(document.getElementById('s-lives'),   312);
+  loadPublicInventory();
+});
+
+async function loadPublicInventory() {
+  try {
+    const inv = await apiFetch('/inventory');
+    const container = document.getElementById('public-inventory');
+    container.innerHTML = inv.map(i => {
+      const pct = Math.min(100, Math.round((i.units_available / 60) * 100));
+      const cls = pct > 50 ? 'ok' : pct > 20 ? 'warn' : 'low';
+      const lbl = pct > 50 ? 'Good' : pct > 20 ? 'Low' : 'Critical';
+      return `<div class="blood-cell">
+        <div class="blood-type-big">${esc(i.blood_group)}</div>
+        <div class="blood-units-n">${i.units_available}</div>
+        <span class="blood-stat ${cls}">${lbl}</span>
+      </div>`;
+    }).join('');
+  } catch {
+    document.getElementById('public-inventory').innerHTML =
+      '<p style="color:var(--muted);text-align:center;grid-column:1/-1;">Could not load inventory. Start the server.</p>';
+  }
+}
+
+// Dark mode for the landing nav button
+document.getElementById('dt1').addEventListener('click', () => {
+  document.body.classList.toggle('light-mode');
+  const isLight = document.body.classList.contains('light-mode');
+  localStorage.setItem('bb_theme', isLight ? 'light' : 'dark');
+  document.getElementById('dt1').innerHTML = isLight ? '<i class="fas fa-moon"></i>' : '<i class="fas fa-sun"></i>';
+});
+const saved = localStorage.getItem('bb_theme');
+if (saved === 'light') { document.body.classList.add('light-mode'); document.getElementById('dt1').innerHTML = '<i class="fas fa-moon"></i>'; }
+</script>
+</body>
+</html>

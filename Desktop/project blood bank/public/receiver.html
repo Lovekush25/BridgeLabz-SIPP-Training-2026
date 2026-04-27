@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Receiver Panel — BloodLink</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+<link rel="stylesheet" href="styles.css"/>
+</head>
+<body>
+<div class="app-layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo">BloodLink</div>
+      <span class="sidebar-role" id="sidebar-role-badge">Student</span>
+    </div>
+    <div class="sidebar-user">
+      <div class="user-avatar" id="user-avatar">U</div>
+      <div><div class="user-name" id="user-name">User</div><div class="user-email" id="user-email"></div></div>
+    </div>
+    <nav class="sidebar-nav">
+      <button class="nav-item active" data-panel="r-request"  onclick="showPanel('r-request')"><i class="fas fa-droplet"></i><span>Request Blood</span></button>
+      <button class="nav-item"        data-panel="r-myrequests" onclick="showPanel('r-myrequests');loadMyRequests()"><i class="fas fa-list"></i><span>My Requests</span></button>
+      <button class="nav-item"        data-panel="r-inventory" onclick="showPanel('r-inventory');loadInventory()"><i class="fas fa-flask"></i><span>Blood Availability</span></button>
+      <div class="nav-section">Navigation</div>
+      <a class="nav-item" href="dashboard_user.html"><i class="fas fa-gauge"></i><span>Dashboard</span></a>
+      <a class="nav-item" href="donor.html"><i class="fas fa-hand-holding-medical"></i><span>Donor Panel</span></a>
+      <a class="nav-item" href="change_password.html"><i class="fas fa-key"></i><span>Change Password</span></a>
+    </nav>
+    <div class="sidebar-footer">
+      <button class="btn-logout" onclick="doLogout()"><i class="fas fa-right-from-bracket"></i> <span>Sign Out</span></button>
+    </div>
+  </aside>
+
+  <div class="main-content">
+    <div class="topbar">
+      <div class="page-title" id="topbar-title">Request Blood</div>
+      <div class="topbar-right">
+        <button class="dark-toggle"><i class="fas fa-sun"></i></button>
+        <span style="font-size:.85rem;color:var(--muted);" id="topbar-date"></span>
+      </div>
+    </div>
+
+    <div class="dashboard-body">
+
+      <!-- REQUEST FORM -->
+      <div class="panel active" id="r-request">
+        <div class="card" style="max-width:640px;">
+          <div class="card-header"><h3><i class="fas fa-droplet" style="color:var(--blood-lt);"></i> Blood Request Form</h3></div>
+          <div id="req-form-alert" class="alert alert-error"></div>
+          <div id="req-form-ok"    class="alert alert-success"></div>
+
+          <div class="form-row">
+            <div class="form-group"><label>Blood Group Required *</label>
+              <select id="rq-blood">
+                <option value="">-- Select Blood Group --</option>
+                <option>A+</option><option>A-</option><option>B+</option><option>B-</option>
+                <option>AB+</option><option>AB-</option><option>O+</option><option>O-</option>
+              </select>
+            </div>
+            <div class="form-group"><label>Units Required *</label>
+              <input type="number" id="rq-units" min="1" max="20" placeholder="e.g. 2"/>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label>Urgency Level *</label>
+              <select id="rq-urgency">
+                <option value="normal">Normal</option>
+                <option value="urgent">Urgent</option>
+                <option value="critical">Critical</option>
+              </select>
+            </div>
+            <div class="form-group"><label>Required By Date</label>
+              <input type="date" id="rq-date"/>
+            </div>
+          </div>
+          <div class="form-group"><label>Contact Information</label>
+            <input id="rq-contact" placeholder="Phone / email for donor to reach you"/>
+          </div>
+          <div class="form-group"><label>Reason / Medical Purpose</label>
+            <textarea id="rq-reason" rows="3" placeholder="Brief description of why blood is needed..."></textarea>
+          </div>
+
+          <div style="background:rgba(200,16,46,.08);border:1px solid var(--border);border-radius:10px;padding:1rem;margin-bottom:1.25rem;">
+            <p style="font-size:.85rem;color:var(--muted);"><i class="fas fa-info-circle" style="color:var(--blood-lt);"></i>
+            Your request will be reviewed by the admin. You will see the status in <strong>My Requests</strong>. If approved, the admin note and contact information will be shared.</p>
+          </div>
+
+          <button class="btn-submit" id="req-submit-btn" onclick="submitRequest()">
+            <i class="fas fa-paper-plane"></i> Submit Blood Request
+          </button>
+        </div>
+      </div>
+
+      <!-- MY REQUESTS -->
+      <div class="panel" id="r-myrequests">
+        <div class="card">
+          <div class="card-header">
+            <h3>My Blood Requests</h3>
+            <button class="btn btn-ghost btn-sm" onclick="loadMyRequests()"><i class="fas fa-refresh"></i></button>
+          </div>
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead><tr><th>Blood Group</th><th>Units</th><th>Urgency</th><th>Required By</th><th>Status</th><th>Admin Note</th><th>Submitted</th></tr></thead>
+              <tbody id="my-req-tbody"><tr><td colspan="7" style="text-align:center;color:var(--muted);"><i class="fas fa-spinner fa-spin"></i></td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- BLOOD AVAILABILITY -->
+      <div class="panel" id="r-inventory">
+        <div class="card">
+          <div class="card-header"><h3>Current Blood Availability</h3><button class="btn btn-ghost btn-sm" onclick="loadInventory()"><i class="fas fa-refresh"></i></button></div>
+          <div class="blood-grid" id="inv-grid">Loading...</div>
+          <p style="margin-top:1rem;color:var(--muted);font-size:.85rem;"><i class="fas fa-info-circle"></i> Availability is updated in real-time as donations come in and requests are approved.</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+<script src="script.js"></script>
+<script>
+requireAuth(['student','faculty']);
+const user = getUser();
+initSidebar(user.role);
+initDarkMode();
+loadMyRequests();
+
+async function submitRequest() {
+  hideAlert('req-form-alert'); hideAlert('req-form-ok');
+  const blood   = val('rq-blood');
+  const units   = val('rq-units');
+  const urgency = val('rq-urgency');
+  const date    = val('rq-date');
+  const contact = val('rq-contact');
+  const reason  = val('rq-reason');
+
+  if (!blood)          { showAlert('req-form-alert', 'Please select a blood group.'); return; }
+  if (!units || units < 1) { showAlert('req-form-alert', 'Please enter units required (minimum 1).'); return; }
+
+  const btn = document.getElementById('req-submit-btn');
+  btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
+
+  try {
+    const res = await apiFetch('/receiver/request', {
+      method: 'POST',
+      body: { blood_group: blood, units: parseInt(units), urgency, required_by: date || null, contact_info: contact, reason }
+    });
+    showAlert('req-form-ok', res.message || 'Request submitted!', 'success');
+    toast('Blood request submitted successfully!', 'success');
+    // Reset form
+    ['rq-blood','rq-units','rq-date','rq-contact','rq-reason'].forEach(id => setVal(id, ''));
+    setVal('rq-urgency', 'normal');
+    loadMyRequests();
+  } catch(e) {
+    showAlert('req-form-alert', e.message || 'Submission failed.');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-paper-plane"></i> Submit Blood Request';
+  }
+}
+
+async function loadMyRequests() {
+  try {
+    const rows = await apiFetch('/receiver/requests', {});
+    const tbody = document.getElementById('my-req-tbody');
+    if (!rows.length) {
+      tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state"><i class="fas fa-inbox"></i><p>No requests submitted yet.</p></div></td></tr>';
+      return;
+    }
+    tbody.innerHTML = rows.map(r => `<tr>
+      <td>${bloodBadge(r.blood_group)}</td>
+      <td>${r.units}</td>
+      <td>${urgencyBadge(r.urgency)}</td>
+      <td>${fmtDate(r.required_by)}</td>
+      <td>${statusBadge(r.status)}</td>
+      <td>${esc(r.admin_note || '—')}</td>
+      <td>${fmtDateTime(r.created_at)}</td>
+    </tr>`).join('');
+  } catch(e) { toast(e.message, 'error'); }
+}
+
+async function loadInventory() {
+  try {
+    const inv = await apiFetch('/inventory');
+    const grid = document.getElementById('inv-grid');
+    grid.innerHTML = inv.map(i => {
+      const pct = Math.min(100, Math.round((i.units_available / 60) * 100));
+      const cls = pct > 50 ? 'ok' : pct > 20 ? 'warn' : 'low';
+      return `<div class="blood-cell">
+        <div class="blood-type-big">${esc(i.blood_group)}</div>
+        <div class="blood-units-n">${i.units_available} <small style="font-size:.7rem;color:var(--muted);">units</small></div>
+        <span class="blood-stat ${cls}">${cls === 'ok' ? 'Available' : cls === 'warn' ? 'Low' : 'Critical'}</span>
+      </div>`;
+    }).join('');
+  } catch(e) { document.getElementById('inv-grid').innerHTML = '<p style="color:var(--muted);">Could not load inventory.</p>'; }
+}
+</script>
+</body>
+</html>

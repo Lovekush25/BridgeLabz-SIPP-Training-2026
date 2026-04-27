@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>My Dashboard — BloodLink</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+<link rel="stylesheet" href="styles.css"/>
+<link rel="stylesheet" href="pages.css"/>
+</head>
+<body>
+<div class="app-layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo">BloodLink</div>
+      <span class="sidebar-role" id="sidebar-role-badge">Student</span>
+    </div>
+    <div class="sidebar-user">
+      <div class="user-avatar" id="user-avatar">U</div>
+      <div>
+        <div class="user-name"  id="user-name">User</div>
+        <div class="user-email" id="user-email">user@example.com</div>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section">Portal</div>
+      <button class="nav-item active" data-panel="u-home"   onclick="showPanel('u-home')"><i class="fas fa-gauge"></i><span>Dashboard</span></button>
+      <button class="nav-item"        data-panel="u-profile" onclick="showPanel('u-profile')"><i class="fas fa-user"></i><span>My Profile</span></button>
+      <div class="nav-section">Actions</div>
+      <a class="nav-item" href="donor.html"><i class="fas fa-hand-holding-medical"></i><span>Donor Panel</span></a>
+      <a class="nav-item" href="receiver.html"><i class="fas fa-droplet"></i><span>Receiver Panel</span></a>
+      <div class="nav-section">Account</div>
+      <a class="nav-item" href="change_password.html"><i class="fas fa-key"></i><span>Change Password</span></a>
+    </nav>
+    <div class="sidebar-footer">
+      <button class="btn-logout" onclick="doLogout()"><i class="fas fa-right-from-bracket"></i> <span>Sign Out</span></button>
+    </div>
+  </aside>
+
+  <div class="main-content">
+    <div class="topbar">
+      <div class="page-title" id="topbar-title">Dashboard</div>
+      <div class="topbar-right">
+        <button class="dark-toggle"><i class="fas fa-sun"></i></button>
+        <span style="font-size:.85rem;color:var(--muted);" id="topbar-date"></span>
+      </div>
+    </div>
+
+    <div class="dashboard-body">
+
+      <!-- HOME -->
+      <div class="panel active" id="u-home">
+        <div id="user-info-bar" class="user-info-card"></div>
+
+        <h2 style="font-family:'Playfair Display',serif;margin-bottom:.5rem;">What would you like to do?</h2>
+        <p style="color:var(--muted);margin-bottom:1.5rem;">Choose your action for today.</p>
+
+        <div class="role-choice-cards">
+          <div class="choice-card" onclick="window.location.href='donor.html'">
+            <div class="choice-icon" style="background:rgba(46,204,113,.15);color:var(--success);">
+              <i class="fas fa-hand-holding-medical"></i>
+            </div>
+            <h3>I am a Donor</h3>
+            <p>Register as a blood donor, update your profile, and view your donation history.</p>
+            <br>
+            <span class="btn btn-success btn-sm"><i class="fas fa-arrow-right"></i> Go to Donor Panel</span>
+          </div>
+          <div class="choice-card" onclick="window.location.href='receiver.html'">
+            <div class="choice-icon" style="background:rgba(200,16,46,.15);color:var(--blood-lt);">
+              <i class="fas fa-droplet"></i>
+            </div>
+            <h3>I am a Receiver</h3>
+            <p>Request blood units, check your request status, and find compatible donors.</p>
+            <br>
+            <span class="btn btn-primary btn-sm"><i class="fas fa-arrow-right"></i> Go to Receiver Panel</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- PROFILE -->
+      <div class="panel" id="u-profile">
+        <div class="card" style="max-width:600px;">
+          <div class="card-header"><h3>My Profile</h3><button class="btn btn-primary btn-sm" onclick="saveProfile()"><i class="fas fa-save"></i> Save</button></div>
+          <div id="profile-alert" class="alert alert-error"></div>
+          <div id="profile-ok"    class="alert alert-success"></div>
+          <div class="form-row">
+            <div class="form-group"><label>Full Name</label><input id="p-name" placeholder="Your name"/></div>
+            <div class="form-group"><label>Phone</label><input id="p-phone" placeholder="Phone number"/></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label>Blood Group</label>
+              <select id="p-blood">
+                <option value="">-- Select --</option>
+                <option>A+</option><option>A-</option><option>B+</option><option>B-</option>
+                <option>AB+</option><option>AB-</option><option>O+</option><option>O-</option>
+              </select>
+            </div>
+            <div class="form-group" id="p-desig-field" style="display:none;">
+              <label>Designation</label>
+              <input id="p-designation" placeholder="Your designation"/>
+            </div>
+          </div>
+          <div class="form-group"><label>Email (Read-only)</label><input id="p-email" readonly style="opacity:.6;"/></div>
+          <div class="form-group" id="p-roll-field" style="display:none;"><label>Roll Number (Read-only)</label><input id="p-roll" readonly style="opacity:.6;"/></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div id="toast-container"></div>
+<script src="script.js"></script>
+<script>
+requireAuth(['student','faculty']);
+const user = getUser();
+initSidebar(user.role);
+initDarkMode();
+
+// Load profile
+async function loadProfile() {
+  try {
+    const me = await apiFetch('/auth/me', {});
+    // Info bar
+    const infoBar = document.getElementById('user-info-bar');
+    const items = [
+      { label: 'Name',       value: esc(me.name) },
+      { label: 'Role',       value: `<span class="badge ${me.role==='student'?'badge-blue':'badge-purple'}">${esc(me.role)}</span>` },
+      { label: me.role==='student' ? 'Roll No.' : 'Designation', value: esc(me.roll_number || me.designation || '—') },
+      { label: 'Blood Group',value: me.blood_group ? bloodBadge(me.blood_group) : '—' },
+      { label: 'Joined',     value: fmtDate(me.created_at) },
+    ];
+    infoBar.innerHTML = items.map(i => `<div class="info-item"><div class="info-label">${i.label}</div><div class="info-value">${i.value}</div></div>`).join('');
+    // Profile form
+    setVal('p-name', me.name); setVal('p-phone', me.phone);
+    setVal('p-blood', me.blood_group || '');
+    setVal('p-email', me.email); setVal('p-roll', me.roll_number);
+    setVal('p-designation', me.designation);
+    if (me.role === 'student') { document.getElementById('p-roll-field').style.display = 'block'; }
+    else { document.getElementById('p-desig-field').style.display = 'block'; }
+  } catch(e) { toast(e.message, 'error'); }
+}
+loadProfile();
+
+async function saveProfile() {
+  hideAlert('profile-alert'); hideAlert('profile-ok');
+  const body = { name: val('p-name'), phone: val('p-phone'),
+    blood_group: val('p-blood'), designation: val('p-designation') };
+  if (!body.name) { showAlert('profile-alert', 'Name is required.'); return; }
+  try {
+    await apiFetch('/auth/profile', { method:'PUT', body });
+    const u = getUser(); u.name = body.name;
+    localStorage.setItem('bb_user', JSON.stringify(u));
+    showAlert('profile-ok', 'Profile updated successfully!', 'success');
+    document.getElementById('user-name').textContent = body.name;
+    document.getElementById('user-avatar').textContent = (body.name || 'U')[0].toUpperCase();
+  } catch(e) { showAlert('profile-alert', e.message); }
+}
+</script>
+</body>
+</html>
