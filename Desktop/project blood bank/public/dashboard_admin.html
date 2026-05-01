@@ -67,7 +67,13 @@
       <!-- ── INVENTORY MANAGEMENT ──────────────────── -->
       <div class="panel" id="a-inventory">
         <div class="card mb-4">
-          <div class="card-header"><h3>Blood Inventory Management</h3><button class="btn btn-primary btn-sm" onclick="loadInventory()"><i class="fas fa-refresh"></i> Refresh</button></div>
+          <div class="card-header">
+            <h3>Blood Inventory Management</h3>
+            <div class="flex gap-2">
+              <button class="btn btn-primary btn-sm" onclick="exportExcel('/admin/export/inventory', 'BloodBank_Inventory.xlsx')"><i class="fas fa-file-excel"></i> Export</button>
+              <button class="btn btn-primary btn-sm" onclick="loadInventory()"><i class="fas fa-refresh"></i> Refresh</button>
+            </div>
+          </div>
           <div class="blood-grid" id="inv-grid">Loading...</div>
         </div>
         <div class="card">
@@ -101,6 +107,7 @@
                 <option value="approved">Approved</option>
                 <option value="rejected">Rejected</option>
               </select>
+              <button class="btn btn-primary btn-sm" onclick="exportExcel('/admin/export/requests', 'BloodBank_Requests.xlsx')"><i class="fas fa-file-excel"></i> Export</button>
               <button class="btn btn-ghost btn-sm" onclick="loadRequests()"><i class="fas fa-refresh"></i></button>
             </div>
           </div>
@@ -129,6 +136,7 @@
                   <option>AB+</option><option>AB-</option><option>O+</option><option>O-</option>
                 </select>
               </div>
+              <button class="btn btn-primary btn-sm" onclick="exportExcel('/admin/export/donors', 'BloodBank_Donors.xlsx')"><i class="fas fa-file-excel"></i> Export</button>
               <button class="btn btn-primary btn-sm" onclick="openAddDonorModal()"><i class="fas fa-plus"></i> Add Donor</button>
             </div>
           </div>
@@ -145,7 +153,13 @@
       <!-- ── USERS ──────────────────────────────────── -->
       <div class="panel" id="a-users">
         <div class="card">
-          <div class="card-header"><h3>Registered Users</h3><button class="btn btn-ghost btn-sm" onclick="loadUsers()"><i class="fas fa-refresh"></i> Refresh</button></div>
+          <div class="card-header">
+            <h3>Registered Users</h3>
+            <div class="flex gap-2">
+              <button class="btn btn-primary btn-sm" onclick="exportExcel('/admin/export/users', 'BloodBank_Users.xlsx')"><i class="fas fa-file-excel"></i> Export</button>
+              <button class="btn btn-ghost btn-sm" onclick="loadUsers()"><i class="fas fa-refresh"></i> Refresh</button>
+            </div>
+          </div>
           <div class="table-wrap">
             <table class="data-table">
               <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Roll/Designation</th><th>Blood Group</th><th>Status</th><th>Joined</th><th>Actions</th></tr></thead>
@@ -158,7 +172,13 @@
       <!-- ── DONATION HISTORY ───────────────────────── -->
       <div class="panel" id="a-history">
         <div class="card">
-          <div class="card-header"><h3>Donation History</h3><button class="btn btn-ghost btn-sm" onclick="loadHistory()"><i class="fas fa-refresh"></i></button></div>
+          <div class="card-header">
+            <h3>Donation History</h3>
+            <div class="flex gap-2">
+              <button class="btn btn-primary btn-sm" onclick="exportExcel('/admin/export/history', 'BloodBank_History.xlsx')"><i class="fas fa-file-excel"></i> Export</button>
+              <button class="btn btn-ghost btn-sm" onclick="loadHistory()"><i class="fas fa-refresh"></i></button>
+            </div>
+          </div>
           <div class="table-wrap">
             <table class="data-table">
               <thead><tr><th>Donor Name</th><th>Roll No.</th><th>Blood Group</th><th>Units</th><th>Date</th><th>Location</th><th>Notes</th></tr></thead>
@@ -239,13 +259,25 @@ loadDonors();
 loadUsers();
 loadHistory();
 
-// Show panel helper (override to update title)
-const _showPanel = showPanel;
-function showPanel(id) {
-  _showPanel(id);
-  const titles = { 'a-overview':'Dashboard','a-inventory':'Blood Inventory','a-requests':'Blood Requests',
-    'a-donors':'Donors Management','a-users':'Users','a-history':'Donation History' };
-  document.getElementById('topbar-title').textContent = titles[id] || 'Dashboard';
+async function exportExcel(endpoint, filename) {
+  try {
+    const res = await fetch(API + endpoint, {
+      headers: { 'Authorization': `Bearer ${getToken()}` }
+    });
+    if (!res.ok) throw new Error('Failed to export data');
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
+    toast('Export downloaded', 'success');
+  } catch(e) {
+    toast(e.message, 'error');
+  }
 }
 
 // ── Stats ──
