@@ -151,15 +151,7 @@ async function loadPublicInventory() {
   }
 }
 
-// Dark mode for the landing nav button
-document.getElementById('dt1').addEventListener('click', () => {
-  document.body.classList.toggle('light-mode');
-  const isLight = document.body.classList.contains('light-mode');
-  localStorage.setItem('bb_theme', isLight ? 'light' : 'dark');
-  document.getElementById('dt1').innerHTML = isLight ? '<i class="fas fa-moon"></i>' : '<i class="fas fa-sun"></i>';
-});
-const saved = localStorage.getItem('bb_theme');
-if (saved === 'light') { document.body.classList.add('light-mode'); document.getElementById('dt1').innerHTML = '<i class="fas fa-moon"></i>'; }
+
 </script>
 </body>
 </html>

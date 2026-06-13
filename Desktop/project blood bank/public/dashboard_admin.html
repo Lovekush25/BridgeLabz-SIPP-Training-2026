@@ -241,6 +241,28 @@
   </div>
 </div>
 
+<!-- Add Donation Modal -->
+<div class="modal-overlay" id="donation-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>Record Donation: <span id="donation-donor-name" style="color:var(--primary);"></span></h3>
+      <button class="modal-close" onclick="closeDonationModal()"><i class="fas fa-xmark"></i></button>
+    </div>
+    <div id="donation-alert" class="alert alert-error"></div>
+    <input type="hidden" id="donation-donor-id"/>
+    <div class="form-row">
+      <div class="form-group"><label>Blood Group</label><input id="donation-bg" readonly style="background:var(--card2);"/></div>
+      <div class="form-group"><label>Units (approx 450ml)</label><input type="number" id="donation-units" value="1" min="0.5" step="0.5"/></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Donation Date *</label><input type="date" id="donation-date"/></div>
+      <div class="form-group"><label>Location</label><input id="donation-loc" placeholder="e.g. Blood Bank Center"/></div>
+    </div>
+    <div class="form-group"><label>Notes (optional)</label><textarea id="donation-notes" rows="2" placeholder="Any medical notes or observations..."></textarea></div>
+    <button class="btn-submit" onclick="saveDonation()"><i class="fas fa-save"></i> Save Record</button>
+  </div>
+</div>
+
 <div id="toast-container"></div>
 <script src="script.js"></script>
 <script>
@@ -395,8 +417,9 @@ async function loadDonors(page = 1) {
       <td>${fmtDate(d.last_donation_date)}</td>
       <td>${d.is_eligible ? '<span class="badge badge-green"><i class="fas fa-check"></i> Yes</span>' : '<span class="badge badge-red">No</span>'}</td>
       <td class="flex gap-1" style="flex-wrap:wrap;">
-        <button class="btn btn-sm btn-warn" onclick="openEditDonor(${d.id})"><i class="fas fa-edit"></i></button>
-        <button class="btn btn-sm btn-danger" onclick="deleteDonor(${d.id}, '${esc(d.full_name)}')"><i class="fas fa-trash"></i></button>
+        <button class="btn btn-sm btn-success" title="Record Donation" onclick="openAddDonation(${d.id}, '${esc(d.blood_group)}', '${esc(d.full_name).replace(/'/g, "\\'")}')"><i class="fas fa-syringe"></i></button>
+        <button class="btn btn-sm btn-warn" title="Edit Donor" onclick="openEditDonor(${d.id})"><i class="fas fa-edit"></i></button>
+        <button class="btn btn-sm btn-danger" title="Delete Donor" onclick="deleteDonor(${d.id}, '${esc(d.full_name).replace(/'/g, "\\'")}')"><i class="fas fa-trash"></i></button>
       </td>
     </tr>`).join('');
     // Pagination
@@ -464,6 +487,41 @@ async function deleteDonor(id, name) {
     toast('Donor deleted.', 'info');
     loadDonors(donorPage); loadStats();
   } catch(e) { toast(e.message, 'error'); }
+}
+
+function openAddDonation(id, bg, name) {
+  document.getElementById('donation-donor-id').value = id;
+  document.getElementById('donation-donor-name').textContent = name;
+  setVal('donation-bg', bg);
+  setVal('donation-units', '1');
+  setVal('donation-date', new Date().toISOString().split('T')[0]);
+  setVal('donation-loc', 'Blood Bank Center');
+  setVal('donation-notes', '');
+  hideAlert('donation-alert');
+  document.getElementById('donation-modal').classList.add('open');
+}
+
+function closeDonationModal() { document.getElementById('donation-modal').classList.remove('open'); }
+
+async function saveDonation() {
+  const id = document.getElementById('donation-donor-id').value;
+  const body = {
+    blood_group: val('donation-bg'),
+    units: parseFloat(val('donation-units')) || 1,
+    donation_date: val('donation-date'),
+    location: val('donation-loc'),
+    notes: val('donation-notes')
+  };
+  if (!body.donation_date) { showAlert('donation-alert', 'Donation date is required.'); return; }
+  try {
+    await apiFetch(`/admin/donors/${id}/history`, { method: 'POST', body });
+    toast('Donation recorded successfully!', 'success');
+    closeDonationModal();
+    loadDonors(donorPage); // Refresh to update last donation date
+    loadHistory(); // Update history table
+    loadInventory(); // Update inventory
+    loadStats(); // Update stats
+  } catch(e) { showAlert('donation-alert', e.message); }
 }
 
 // ── Users ──

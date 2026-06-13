@@ -21,6 +21,7 @@
     </div>
     <nav class="sidebar-nav">
       <button class="nav-item active" data-panel="d-register" onclick="showPanel('d-register')"><i class="fas fa-user-plus"></i><span>Register / Update</span></button>
+      <button class="nav-item"        data-panel="d-donate"   onclick="showPanel('d-donate')"><i class="fas fa-syringe"></i><span>Donate Blood</span></button>
       <button class="nav-item"        data-panel="d-history"  onclick="showPanel('d-history')"><i class="fas fa-clock-rotate-left"></i><span>Donation History</span></button>
       <button class="nav-item"        data-panel="d-search"   onclick="showPanel('d-search')"><i class="fas fa-magnifying-glass"></i><span>Search Donors</span></button>
       <div class="nav-section">Navigation</div>
@@ -81,6 +82,29 @@
 
           <button class="btn-submit" id="donor-submit-btn" onclick="submitDonor()">
             <i class="fas fa-user-plus"></i> <span id="donor-btn-text">Register as Donor</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- ── DONATE BLOOD ── -->
+      <div class="panel" id="d-donate">
+        <div class="card" style="max-width:660px;">
+          <div class="card-header">
+            <h3><i class="fas fa-hand-holding-water" style="color:var(--primary);"></i> Record Blood Donation</h3>
+          </div>
+          <p style="margin-bottom:1.5rem;color:var(--muted);">Use this facility to log a recent blood donation. Make sure you are registered as a donor first!</p>
+          <div id="donate-alert" class="alert alert-error"></div>
+          <div id="donate-ok" class="alert alert-success"></div>
+          
+          <div class="form-row">
+            <div class="form-group"><label>Units Donated (approx 450ml)</label><input type="number" id="don-units" value="1" min="0.5" step="0.5"/></div>
+            <div class="form-group"><label>Donation Date *</label><input type="date" id="don-date"/></div>
+          </div>
+          <div class="form-group"><label>Location</label><input id="don-loc" placeholder="e.g. University Hospital or Blood Drive"/></div>
+          <div class="form-group"><label>Notes / Feedback (optional)</label><textarea id="don-notes" rows="3" placeholder="How was your experience? Any medical notes?"></textarea></div>
+          
+          <button class="btn-submit" id="donate-submit-btn" onclick="submitDonation()">
+            <i class="fas fa-save"></i> Submit Donation Record
           </button>
         </div>
       </div>
@@ -164,6 +188,9 @@ async function loadDonorProfile() {
 loadDonorProfile();
 loadHistory();
 
+// Set default date for donation
+document.getElementById('don-date').value = new Date().toISOString().split('T')[0];
+
 async function submitDonor() {
   hideAlert('donor-reg-alert'); hideAlert('donor-reg-ok');
   const body = {
@@ -190,6 +217,47 @@ async function submitDonor() {
     showAlert('donor-reg-alert', e.message);
     btn.innerHTML = isRegistered ? '<i class="fas fa-save"></i> Update Donor Profile' : '<i class="fas fa-user-plus"></i> Register as Donor';
   } finally { btn.disabled = false; }
+}
+
+async function submitDonation() {
+  hideAlert('donate-alert'); hideAlert('donate-ok');
+  
+  if (!isRegistered) {
+    showAlert('donate-alert', 'You must register as a donor first (in the Register / Update tab) before recording a donation.');
+    return;
+  }
+  
+  const body = {
+    units: parseFloat(val('don-units')) || 1,
+    donation_date: val('don-date'),
+    location: val('don-loc'),
+    notes: val('don-notes')
+  };
+  
+  if (!body.donation_date) { showAlert('donate-alert', 'Donation date is required.'); return; }
+  
+  const btn = document.getElementById('donate-submit-btn');
+  btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
+  
+  try {
+    const res = await apiFetch('/donor/history', { method: 'POST', body });
+    showAlert('donate-ok', res.message || 'Donation recorded successfully!', 'success');
+    toast('Donation saved! Your history has been updated.', 'success');
+    
+    // Reset form
+    setVal('don-units', '1');
+    setVal('don-date', new Date().toISOString().split('T')[0]);
+    setVal('don-loc', '');
+    setVal('don-notes', '');
+    
+    loadHistory(); // Refresh the history panel
+    loadDonorProfile(); // Refresh last donation date in profile
+  } catch(e) {
+    showAlert('donate-alert', e.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-save"></i> Submit Donation Record';
+  }
 }
 
 async function loadHistory() {

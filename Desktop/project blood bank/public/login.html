@@ -106,16 +106,7 @@ async function doLogin() {
 // Enter key support
 document.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
 
-// Dark mode
-const themeBtn = document.getElementById('theme-btn');
-const saved = localStorage.getItem('bb_theme');
-if (saved === 'light') { document.body.classList.add('light-mode'); themeBtn.innerHTML = '<i class="fas fa-moon"></i>'; }
-themeBtn.addEventListener('click', () => {
-  document.body.classList.toggle('light-mode');
-  const isLight = document.body.classList.contains('light-mode');
-  localStorage.setItem('bb_theme', isLight ? 'light' : 'dark');
-  themeBtn.innerHTML = isLight ? '<i class="fas fa-moon"></i>' : '<i class="fas fa-sun"></i>';
-});
+
 
 // Eye toggle (handled by script.js initEyeToggles on DOMContentLoaded)
 </script>

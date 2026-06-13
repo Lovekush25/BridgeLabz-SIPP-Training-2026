@@ -16,7 +16,7 @@ require('dotenv').config();
 
 // ─── SQLite Setup (sql.js — pure JS, no installation needed) ──
 const initSqlJs = require('sql.js');
-const XLSX = require('xlsx');
+const ExcelJS = require('exceljs');
 
 const app  = express();
 const PORT = process.env.PORT || 5000;
@@ -379,6 +379,30 @@ app.get('/api/donor/history', authMiddleware(['student', 'faculty']), (req, res)
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+app.post('/api/donor/history', authMiddleware(['student', 'faculty']), (req, res) => {
+    const { units, donation_date, location, notes } = req.body;
+    if (!donation_date) return res.status(400).json({ error: 'Donation date is required.' });
+    try {
+        const donor = getOne('SELECT id, blood_group FROM donors WHERE user_id = ?', [req.user.id]);
+        if (!donor) return res.status(403).json({ error: 'You must be registered as a donor first.' });
+
+        db.run(
+            `INSERT INTO donation_history (donor_id, blood_group, units, donation_date, location, notes) VALUES (?, ?, ?, ?, ?, ?)`,
+            [donor.id, donor.blood_group, units || 1, donation_date, location || null, notes || null]
+        );
+        db.run(
+            'UPDATE donors SET total_donations = total_donations + 1, last_donation_date = ? WHERE id = ?',
+            [donation_date, donor.id]
+        );
+        db.run(
+            'UPDATE blood_inventory SET units_available = units_available + ?, last_updated = CURRENT_TIMESTAMP WHERE blood_group = ?',
+            [units || 1, donor.blood_group]
+        );
+        saveDb();
+        res.json({ message: 'Donation recorded successfully!' });
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 app.get('/api/donors/search', authMiddleware(), (req, res) => {
     const { blood_group } = req.query;
     try {
@@ -612,38 +636,41 @@ app.post('/api/admin/donors/:id/history', authMiddleware(['admin']), (req, res) 
 //  EXCEL EXPORT ROUTES (Admin Only)
 // ─────────────────────────────────────────────────────────────
 
-function sendExcel(res, data, sheetName, fileName) {
-    const ws = XLSX.utils.json_to_sheet(data);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, sheetName);
-    const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+async function sendExcel(res, data, sheetName, fileName) {
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet(sheetName);
+    if (data && data.length > 0) {
+        ws.columns = Object.keys(data[0]).map(key => ({ header: key, key: key }));
+        ws.addRows(data);
+    }
     res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.send(Buffer.from(buf));
+    await wb.xlsx.write(res);
+    res.end();
 }
 
-app.get('/api/admin/export/donors', authMiddleware(['admin']), (req, res) => {
+app.get('/api/admin/export/donors', authMiddleware(['admin']), async (req, res) => {
     try {
         const rows = getAll(`SELECT d.full_name, d.age, d.blood_group, d.contact, d.email, d.roll_number,
             d.last_donation_date, d.total_donations, d.city, d.address, d.medical_notes,
             CASE WHEN d.is_eligible = 1 THEN 'Yes' ELSE 'No' END as eligible,
             d.created_at as registered_on
             FROM donors d ORDER BY d.full_name`);
-        sendExcel(res, rows, 'Donors', 'BloodBank_Donors.xlsx');
+        await sendExcel(res, rows, 'Donors', 'BloodBank_Donors.xlsx');
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-app.get('/api/admin/export/users', authMiddleware(['admin']), (req, res) => {
+app.get('/api/admin/export/users', authMiddleware(['admin']), async (req, res) => {
     try {
         const rows = getAll(`SELECT name, email, role, roll_number, designation, phone, blood_group,
             CASE WHEN is_active = 1 THEN 'Active' ELSE 'Inactive' END as status,
             created_at as registered_on
             FROM users WHERE role != 'admin' ORDER BY created_at DESC`);
-        sendExcel(res, rows, 'Users', 'BloodBank_Users.xlsx');
+        await sendExcel(res, rows, 'Users', 'BloodBank_Users.xlsx');
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-app.get('/api/admin/export/requests', authMiddleware(['admin']), (req, res) => {
+app.get('/api/admin/export/requests', authMiddleware(['admin']), async (req, res) => {
     try {
         const rows = getAll(`SELECT br.id, u.name as requester_name, u.email as requester_email,
             u.role as requester_role, u.roll_number, br.blood_group, br.units, br.urgency,
@@ -651,24 +678,24 @@ app.get('/api/admin/export/requests', authMiddleware(['admin']), (req, res) => {
             br.created_at as requested_on, br.approved_at
             FROM blood_requests br LEFT JOIN users u ON br.user_id = u.id
             ORDER BY br.created_at DESC`);
-        sendExcel(res, rows, 'Blood Requests', 'BloodBank_Requests.xlsx');
+        await sendExcel(res, rows, 'Blood Requests', 'BloodBank_Requests.xlsx');
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-app.get('/api/admin/export/inventory', authMiddleware(['admin']), (req, res) => {
+app.get('/api/admin/export/inventory', authMiddleware(['admin']), async (req, res) => {
     try {
         const rows = getAll('SELECT blood_group, units_available, last_updated FROM blood_inventory ORDER BY blood_group');
-        sendExcel(res, rows, 'Inventory', 'BloodBank_Inventory.xlsx');
+        await sendExcel(res, rows, 'Inventory', 'BloodBank_Inventory.xlsx');
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-app.get('/api/admin/export/history', authMiddleware(['admin']), (req, res) => {
+app.get('/api/admin/export/history', authMiddleware(['admin']), async (req, res) => {
     try {
         const rows = getAll(`SELECT d.full_name as donor_name, d.roll_number, dh.blood_group,
             dh.units, dh.donation_date, dh.location, dh.status, dh.notes
             FROM donation_history dh LEFT JOIN donors d ON dh.donor_id = d.id
             ORDER BY dh.donation_date DESC`);
-        sendExcel(res, rows, 'Donation History', 'BloodBank_DonationHistory.xlsx');
+        await sendExcel(res, rows, 'Donation History', 'BloodBank_DonationHistory.xlsx');
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
