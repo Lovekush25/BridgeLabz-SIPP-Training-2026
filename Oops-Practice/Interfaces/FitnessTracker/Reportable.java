@@ -1,0 +1,3 @@
+interface Reportable {
+    void generateReport();
+}
